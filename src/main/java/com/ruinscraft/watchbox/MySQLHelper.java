@@ -73,34 +73,4 @@ public class MySQLHelper {
 
         return null;
     }
-
-    private String itemTo64(ItemStack stack) throws IllegalStateException {
-        try {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream);
-            dataOutput.writeObject(stack);
-
-            // Serialize that array
-            dataOutput.close();
-            return Base64.getEncoder().encodeToString(outputStream.toByteArray());
-        }
-        catch (Exception e) {
-            throw new IllegalStateException("Unable to save item stack.", e);
-        }
-    }
-    
-    private ItemStack itemFrom64(String data) throws IOException {
-        try {
-            ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64.getDecoder().decode(data));
-            BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream);
-            try {
-                return (ItemStack) dataInput.readObject();
-            } finally {
-                dataInput.close();
-            }
-        }
-        catch (ClassNotFoundException e) {
-            throw new IOException("Unable to decode class type.", e);
-        }
-    }
 }

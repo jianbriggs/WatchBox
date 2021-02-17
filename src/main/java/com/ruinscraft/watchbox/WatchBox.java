@@ -6,8 +6,11 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 public class WatchBox extends JavaPlugin {
 	private FileConfiguration config = getConfig();
+	
 	private MySQLHelper mySQLHelper;
-
+	
+	private WatchBoxListener listener;
+	
     @Override
     public void onEnable() {
     	
@@ -30,19 +33,19 @@ public class WatchBox extends JavaPlugin {
     	}
     	
     	setupMySQLHelper();
+    	this.listener = new WatchBoxListener(this);
     	
-    	// TODO: setup command
-    	//this.getCommand("shop").setExecutor(new ShopCommandExecutor(this));
-    	//this.getCommand("shop").setTabCompleter(this);
+    	this.getCommand("watchbox").setExecutor(new WatchBoxCommandExecutor(this));
+    	this.getCommand("watchbox").setTabCompleter(this);
     	
-    	//Bukkit.getPluginManager().registerEvents(this.sl, this);
+    	Bukkit.getPluginManager().registerEvents(this.listener, this);
     	
-    	getLogger().info("DukesMart has been enabled!");
+    	getLogger().info("WatchBox has been enabled!");
     }
 
     @Override
     public void onDisable() {
-    	getLogger().info("DukesMart has been disabled!");
+    	getLogger().info("WatchBox has been disabled!");
     }
 
     public void setupMySQLHelper() {

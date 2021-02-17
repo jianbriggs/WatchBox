@@ -202,19 +202,6 @@ public class WatchBoxListener implements Listener{
     	return output;
     }
 
-	/**
-     * Returns the Location data of a shop sign
-     * @param s Sign representing a shop
-     * @return Sign location data
-     */
-    private Location getShopLocation(Sign s) {
-		return s.getLocation();
-	}
-
-	/*
-     * Helper methods below this comment.
-     */
-    
     /**
      * Sends an error message to the player.
      * @param p Player to send message to

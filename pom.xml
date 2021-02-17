@@ -11,7 +11,7 @@
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
-        <mainClass>com.ruinscraft.dukesmart.DukesMart</mainClass>
+        <mainClass>com.ruinscraft.watchbox.WatchBox</mainClass>
         <jar.finalName>${project.name}</jar.finalName>
     </properties>
 

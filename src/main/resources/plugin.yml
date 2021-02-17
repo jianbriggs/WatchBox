@@ -4,7 +4,7 @@ version: 0.1
 author: Ruinscraft LLC
 api-version: 1.13
 commands:
-  shop:
+  watchbox:
     description: Shows all commands for WatchBox
     usage: /watchbox
     permission: watchbox.general
