@@ -1,0 +1,10 @@
+name: WatchBox
+main: com.ruinscraft.watchbox.WatchBox
+version: 0.1
+author: Ruinscraft LLC
+api-version: 1.13
+commands:
+  shop:
+    description: Shows all commands for WatchBox
+    usage: /watchbox
+    permission: watchbox.general
