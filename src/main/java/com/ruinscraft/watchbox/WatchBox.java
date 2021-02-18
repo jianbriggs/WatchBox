@@ -8,7 +8,7 @@ public class WatchBox extends JavaPlugin {
 	private FileConfiguration config = getConfig();
 	
 	private MySQLHelper mySQLHelper;
-	
+	private SelectedSignController selectedSignController;
 	private WatchBoxListener listener;
 	
     @Override
@@ -34,6 +34,7 @@ public class WatchBox extends JavaPlugin {
     	
     	setupMySQLHelper();
     	this.listener = new WatchBoxListener(this);
+    	this.selectedSignController = new SelectedSignController();
     	
     	this.getCommand("watchbox").setExecutor(new WatchBoxCommandExecutor(this));
     	this.getCommand("watchbox").setTabCompleter(this);
@@ -62,4 +63,13 @@ public class WatchBox extends JavaPlugin {
     public MySQLHelper getMySQLHelper() {
     	return this.mySQLHelper;
     }
+    
+    public SelectedSignController getSelectedSignController() {
+    	return this.selectedSignController;
+    }
+    
+    public WatchBoxListener getWatchBoxListener() {
+    	return this.listener;
+    }
+    
 }

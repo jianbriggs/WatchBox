@@ -52,6 +52,15 @@ public class WatchBoxListener implements Listener{
 	
 	private WatchBox plugin;
 	
+	private final String PLUGIN_NAME = "WatchBox";
+	
+	private final String WATCH_SIGN_TEXT_IDENTIFIER = "[WatchBox]";
+	public final String WATCH_SIGN_FULL_IDENTIFIER = "" + ChatColor.DARK_RED + WATCH_SIGN_TEXT_IDENTIFIER;
+	public final String WATCH_SIGN_OWNER_COLOR = "" + ChatColor.DARK_AQUA;
+	
+	private final String MSG_PLAYER_SIGN_SELECTED = "" + ChatColor.GREEN + "WatchBox Selected";
+	private final String MSG_WATCH_SIGN_REMOVED = "" + ChatColor.RED + "One of your WatchBox chests has been removed by %s!";
+	
     public WatchBoxListener(WatchBox plugin) {
     	this.plugin = plugin;
     }
@@ -70,6 +79,29 @@ public class WatchBoxListener implements Listener{
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent evt) {
         Player player = evt.getPlayer();
+        
+        if(evt.getAction() == Action.RIGHT_CLICK_BLOCK) {
+        	Block clickedBlock = evt.getClickedBlock();
+        	
+        	if(blockIsSign(clickedBlock)) {
+            	// a shop is defined as a sign (formatted)
+            	// and a chest block immediately below it.
+                Sign sign = (Sign) clickedBlock.getState();
+
+                if(signIsWatchSign(sign)) {
+                	
+                    org.bukkit.material.Sign signMaterial = (org.bukkit.material.Sign) sign.getData();
+                    Block block = null;
+                    
+                    // first, get the block that the sign is attached to
+                    block = clickedBlock.getRelative(signMaterial.getAttachedFace());
+                    
+	                if(blockIsChest(block)) {
+	                	
+	                }
+                }
+        	}
+        }
     }
     
 	@EventHandler
@@ -84,11 +116,39 @@ public class WatchBoxListener implements Listener{
     	Block block = evt.getBlock();
     	
     	if(block.getState() instanceof Sign) {
+	    	if(validateWatchSignEntry(evt.getLines())) {
 
+	    		//evt.setLine(0, WATCH_SIGN_FULL_IDENTIFIER);
+	    		//evt.setLine(1, WATCH_SIGN_OWNER_COLOR + player.getName());
+	    		Sign sign = (Sign) block.getState();
+	    		playerConfirmCreation(player, sign);
+	    	}
     	}
     }
     
-    private String getItemDisplayName(ItemStack item) {
+    private void playerConfirmCreation(Player player, Sign sign) {
+		if(player.isOnline()) {
+			String border = coloredTextBorder(ChatColor.DARK_RED, ChatColor.DARK_GRAY, 24);
+			player.sendMessage(border);
+			player.sendMessage(ChatColor.GRAY + "A new " + ChatColor.WHITE + "WatchBox " + ChatColor.GRAY + "chest will cost $100");
+			player.sendMessage("");
+			player.sendMessage(ChatColor.GRAY + "To confirm, type " + ChatColor.GREEN + "/watchbox confirm");
+			player.sendMessage(ChatColor.GRAY + "To cancel, remove this sign or wait 20 seconds");
+			player.sendMessage(border);
+			
+			this.plugin.getSelectedSignController().addSelection(player, sign);
+		}
+	}
+    
+	private String coloredTextBorder(ChatColor color1, ChatColor color2, int length) {
+		String border = "";
+		for(int i = 0; i < length; i++) {
+			border += color1 + "-" + color2 + "-";
+		}
+		return border;
+	}
+
+	private String getItemDisplayName(ItemStack item) {
     	ItemMeta meta = item.getItemMeta();
     	Material mat = item.getType();
     	
@@ -133,6 +193,22 @@ public class WatchBoxListener implements Listener{
 		return materialPrettyPrint(itemMaterial.parseMaterial());
 	}
 	
+    /**
+     * Checks if a given sign's text is formatted for a watch sign
+     * @param sign
+     * @return
+     */
+    private boolean validateWatchSignEntry(String[] lines) {
+    	return lines[0].equalsIgnoreCase(WATCH_SIGN_TEXT_IDENTIFIER);
+    }
+    /**
+     * Checks if a given sign is formatted as a Watch Sign
+     * @param sign - Sign block
+     * @return True if sign matches validation, false otherwise
+     */
+    private boolean signIsWatchSign(Sign sign) {
+    	return sign.getLine(0).equals(WATCH_SIGN_FULL_IDENTIFIER);
+    }
 	/**
 	 * Checks whheter a block is a sign.
 	 * @param block

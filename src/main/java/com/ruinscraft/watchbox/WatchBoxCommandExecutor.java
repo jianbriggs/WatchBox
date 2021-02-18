@@ -5,14 +5,20 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import net.md_5.bungee.api.ChatColor;
 
@@ -40,6 +46,15 @@ public class WatchBoxCommandExecutor implements CommandExecutor, TabCompleter{
 		
 		if(args.length >= 1) {
 			switch(args[0].toLowerCase()){
+				case "confirm":
+					confirmWatchSignCreation(player);
+					break;
+				case "encode":
+					itemEncode(player);
+					break;
+				case "decode":
+					itemDecode(player);
+					break;
 				default:
 					showHelp(player);
 					break;
@@ -52,6 +67,29 @@ public class WatchBoxCommandExecutor implements CommandExecutor, TabCompleter{
 		return true;
 	}
 	
+
+	private void confirmWatchSignCreation(Player player) {
+		// TODO: debug
+		player.sendMessage("(Debug) Player confirming creation");
+		////
+		
+		if(this.plugin.getSelectedSignController().playerHasSelection(player)) {
+			Sign sign = this.plugin.getSelectedSignController().getSelection(player);
+			
+			player.sendMessage("(Debug) Location of sign: " + sign.getLocation().toString());
+
+			String[] lines = sign.getLines();
+			
+			lines[0] = this.plugin.getWatchBoxListener().WATCH_SIGN_FULL_IDENTIFIER;
+			lines[1] = this.plugin.getWatchBoxListener().WATCH_SIGN_OWNER_COLOR + player.getName();
+			sign.update();
+			
+			// TODO: remove money from player inventory
+			if(player.isOnline()) {
+				player.sendMessage(ChatColor.GREEN + "WatchBox successfully created!");
+			}
+		}
+	}
 
 	@Override
 	public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
@@ -86,7 +124,49 @@ public class WatchBoxCommandExecutor implements CommandExecutor, TabCompleter{
 			player.sendMessage("Showing WatchBox help");
 		}
 	}
+	
+	/**
+	 * Experimental - encodes/serializes an ItemStack in player's hand
+	 * @param player
+	 */
+	private void itemEncode(Player player) {
+		PlayerInventory inventory = player.getInventory();
+		ItemStack heldItem = inventory.getItemInMainHand();
+		List<String> data = CryptoSecure.encodeItemStack(heldItem);
+		
+		ItemStack holder = new ItemStack(Material.WRITTEN_BOOK);
+		BookMeta meta = (BookMeta) holder.getItemMeta();
+		meta.setAuthor("WATCHBOX");
+		meta.setTitle("(Placeholder)");
+		meta.setPages(data);
+		holder.setItemMeta(meta);
+		
+		inventory.addItem(holder);
+	}
+	
+	/**
+	 * Experimental - decodes/deserializes an ItemStack from Book string
+	 * @param player
+	 */
+	private void itemDecode(Player player) {
+		PlayerInventory inventory = player.getInventory();
+		ItemStack heldItem = inventory.getItemInMainHand();
 
+		if(heldItem.getItemMeta() instanceof BookMeta) {
+			BookMeta meta = (BookMeta) heldItem.getItemMeta();
+			if(meta.hasPages()) {
+				List<String> data = meta.getPages();
+				ItemStack decode = CryptoSecure.decodeItemStack(data);
+				
+				if(decode != null) {
+					inventory.addItem(decode);
+				}
+			}
+		}
+		else {
+			return;
+		}
+	}
 	/**
 	 * Checks if a given string is a number
 	 * 
