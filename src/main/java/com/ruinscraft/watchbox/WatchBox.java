@@ -14,12 +14,23 @@ public class WatchBox extends JavaPlugin {
     @Override
     public void onEnable() {
     	
+    	// check config.yml for plugin values
+    	if(!config.contains("watchbox.chest-cost")) {
+    		getLogger().info("Adding default plugin values to config.yml");
+    		
+    		config.addDefault("watchbox.chest-cost", 100); // cost for creating a WatchBox chest
+    		// TODO: add global plugin values
+    		
+    		config.options().copyDefaults(true);
+    		saveConfig();
+    	}
+    	
     	// check config.yml for database credentials
     	if(!config.contains("mysql.host") || !config.contains("mysql.port") || !config.contains("mysql.database")
     	   || !config.contains("mysql.username") || !config.contains("mysql.password")) {
     		
     		getLogger().info("Failed to find database information in config.yml!");
-    		getLogger().info("Adding default values to config.yml");
+    		getLogger().info("Adding default database values to config.yml");
     		
     		config.addDefault("mysql.host", "localhost");
     		config.addDefault("mysql.port", 3306);

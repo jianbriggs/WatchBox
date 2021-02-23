@@ -56,7 +56,7 @@ public class WatchBoxListener implements Listener{
 	
 	private final String WATCH_SIGN_TEXT_IDENTIFIER = "[WatchBox]";
 	public final String WATCH_SIGN_FULL_IDENTIFIER = "" + ChatColor.DARK_RED + WATCH_SIGN_TEXT_IDENTIFIER;
-	public final String WATCH_SIGN_OWNER_COLOR = "" + ChatColor.DARK_AQUA;
+	public final String WATCH_SIGN_OWNER_COLOR = "" + ChatColor.DARK_BLUE;
 	
 	private final String MSG_PLAYER_SIGN_SELECTED = "" + ChatColor.GREEN + "WatchBox Selected";
 	private final String MSG_WATCH_SIGN_REMOVED = "" + ChatColor.RED + "One of your WatchBox chests has been removed by %s!";

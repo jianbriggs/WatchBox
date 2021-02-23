@@ -69,24 +69,33 @@ public class WatchBoxCommandExecutor implements CommandExecutor, TabCompleter{
 	
 
 	private void confirmWatchSignCreation(Player player) {
-		// TODO: debug
-		player.sendMessage("(Debug) Player confirming creation");
-		////
-		
 		if(this.plugin.getSelectedSignController().playerHasSelection(player)) {
-			Sign sign = this.plugin.getSelectedSignController().getSelection(player);
-			
-			player.sendMessage("(Debug) Location of sign: " + sign.getLocation().toString());
-
-			String[] lines = sign.getLines();
-			
-			lines[0] = this.plugin.getWatchBoxListener().WATCH_SIGN_FULL_IDENTIFIER;
-			lines[1] = this.plugin.getWatchBoxListener().WATCH_SIGN_OWNER_COLOR + player.getName();
-			sign.update();
-			
-			// TODO: remove money from player inventory
 			if(player.isOnline()) {
-				player.sendMessage(ChatColor.GREEN + "WatchBox successfully created!");
+				ItemStack creationCost = XMaterial.GOLD_INGOT.parseItem();
+				PlayerInventory playerInventory = player.getInventory();
+				if(playerInventory.containsAtLeast(creationCost, this.plugin.getConfig().getInt("watchbox.chest-cost"))) {
+					creationCost.setAmount(this.plugin.getConfig().getInt("watchbox.chest-cost"));
+					playerInventory.removeItem(creationCost);
+					
+					Sign sign = this.plugin.getSelectedSignController().getSelection(player);
+					
+					String[] lines = sign.getLines();
+					
+					lines[0] = this.plugin.getWatchBoxListener().WATCH_SIGN_FULL_IDENTIFIER;
+					lines[1] = this.plugin.getWatchBoxListener().WATCH_SIGN_OWNER_COLOR + player.getName();
+					sign.update();
+
+					player.sendMessage(ChatColor.GREEN + "WatchBox successfully created!");
+					this.plugin.getSelectedSignController().removeSelection(player);
+				}
+				else {
+					player.sendMessage(ChatColor.RED + "Sorry, but you do not have enough money.");
+				}
+			}
+		}
+		else {
+			if(player.isOnline()) {
+				player.sendMessage(ChatColor.RED + "You need to create a new WatchBox sign in order to confirm!");
 			}
 		}
 	}
