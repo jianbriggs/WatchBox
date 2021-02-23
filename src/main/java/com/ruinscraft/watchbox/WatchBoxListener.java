@@ -7,17 +7,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.Map.Entry;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.Chest;
 import org.bukkit.block.DoubleChest;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.block.Sign;
-import org.bukkit.block.banner.Pattern;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,6 +20,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -42,9 +39,7 @@ import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.map.MapView;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Scoreboard;
+
 
 import net.md_5.bungee.api.ChatColor;
 
@@ -73,9 +68,26 @@ public class WatchBoxListener implements Listener{
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent evt) {
     	Player player = evt.getPlayer();
-
+    	this.plugin.getSelectedSignController().removeSelection(player);
     }
-
+    
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent evt) {
+    	Player caller = (Player) evt.getWhoClicked();
+    	
+    	Inventory topInventory = evt.getView().getTopInventory();
+    	Inventory bottomInventory = evt.getView().getBottomInventory();
+    	ItemStack item = evt.getCurrentItem();
+    	
+    	String action = evt.getAction().name();
+    	if((action.equals("PLACE_ONE") || action.equals("PLACE_ALL")) && evt.getClickedInventory().equals(topInventory)) {
+    		caller.sendMessage("(Debug) You placed " + item.getType() + " into chest");
+    	}
+    	else if(action.equals("MOVE_TO_OTHER_INVENTORY") && evt.getClickedInventory().equals(topInventory)) {
+    		caller.sendMessage("(Debug) You moved " + item.getType() + " into your inventory");
+    	}
+    }
+    
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent evt) {
         Player player = evt.getPlayer();
@@ -97,7 +109,7 @@ public class WatchBoxListener implements Listener{
                     block = clickedBlock.getRelative(signMaterial.getAttachedFace());
                     
 	                if(blockIsChest(block)) {
-	                	
+	                	// TODO: get WatchBox info from database lookup
 	                }
                 }
         	}
@@ -117,11 +129,16 @@ public class WatchBoxListener implements Listener{
     	
     	if(block.getState() instanceof Sign) {
 	    	if(validateWatchSignEntry(evt.getLines())) {
-
-	    		//evt.setLine(0, WATCH_SIGN_FULL_IDENTIFIER);
-	    		//evt.setLine(1, WATCH_SIGN_OWNER_COLOR + player.getName());
 	    		Sign sign = (Sign) block.getState();
-	    		playerConfirmCreation(player, sign);
+	    		org.bukkit.material.Sign signMaterial = (org.bukkit.material.Sign) sign.getData();
+                Block blockToCheck = null;
+                
+                // first, get the block that the sign is attached to
+                blockToCheck = block.getRelative(signMaterial.getAttachedFace());
+                
+                if(blockIsChest(blockToCheck)) {
+                	playerConfirmCreation(player, sign);
+                }
 	    	}
     	}
     }
@@ -130,10 +147,10 @@ public class WatchBoxListener implements Listener{
 		if(player.isOnline()) {
 			String border = coloredTextBorder(ChatColor.DARK_RED, ChatColor.DARK_GRAY, 24);
 			player.sendMessage(border);
-			player.sendMessage(ChatColor.GRAY + "A new " + ChatColor.WHITE + "WatchBox " + ChatColor.GRAY + "chest will cost $100");
+			player.sendMessage(ChatColor.GRAY + "A new " + ChatColor.WHITE + "WatchBox " + ChatColor.GRAY + "chest will cost $" + this.plugin.getConfig().getInt("watchbox.chest-cost"));
 			player.sendMessage("");
 			player.sendMessage(ChatColor.GRAY + "To confirm, type " + ChatColor.GREEN + "/watchbox confirm");
-			player.sendMessage(ChatColor.GRAY + "To cancel, remove this sign or wait 20 seconds");
+			player.sendMessage(ChatColor.GRAY + "To cancel, simply remove this sign");
 			player.sendMessage(border);
 			
 			this.plugin.getSelectedSignController().addSelection(player, sign);
@@ -210,7 +227,7 @@ public class WatchBoxListener implements Listener{
     	return sign.getLine(0).equals(WATCH_SIGN_FULL_IDENTIFIER);
     }
 	/**
-	 * Checks whheter a block is a sign.
+	 * Checks whether a block is a sign.
 	 * @param block
 	 * @return True if block is sign, False otherwise
 	 */
@@ -276,17 +293,6 @@ public class WatchBoxListener implements Listener{
     	}
     	output = output.trim();
     	return output;
-    }
-
-    /**
-     * Sends an error message to the player.
-     * @param p Player to send message to
-     * @param message Message to output
-     */
-    private void sendError(Player player, String message) {
-    	if(player.isOnline()) {
-    		player.sendMessage(ChatColor.RED + message);
-    	}
     }
 
     private boolean itemIsFinishedBook(ItemStack item) {

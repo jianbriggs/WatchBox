@@ -23,9 +23,9 @@ public class SelectedSignController {
 		}
 	}
 	
-	public void removeShop(Sign lsign) {
+	public void removeSign(Sign sign) {
 		for(Entry<Player, Sign> e : selectionMap.entrySet()) {
-			if(e.getValue().equals(lsign)) {
+			if(e.getValue().equals(sign)) {
 				selectionMap.remove(e.getKey());
 			}
 		}
