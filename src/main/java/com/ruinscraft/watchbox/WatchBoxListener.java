@@ -118,6 +118,7 @@ public class WatchBoxListener implements Listener{
     	
     	Inventory topInventory = evt.getView().getTopInventory();
     	Inventory bottomInventory = evt.getView().getBottomInventory();
+    	Inventory clickedInventory = evt.getClickedInventory();
     	ItemStack itemInSlot = evt.getCursor();
     	ItemStack itemInHand = evt.getCurrentItem();
     	
@@ -129,28 +130,36 @@ public class WatchBoxListener implements Listener{
 		    	String action = evt.getAction().name();
 		    	// TODO: debug
 		    	caller.sendMessage("(Debug) Action is " + action);
-		    	caller.sendMessage("Item in slot: " + itemInSlot.getAmount() + "x " + itemInSlot.getType() + " | Item in hand: " + itemInHand.getAmount() + "x "+ itemInHand.getType());
+		    	if(itemInSlot != null && itemInHand != null) {
+		    		caller.sendMessage("Item in slot: " + itemInSlot.getAmount() + "x " + itemInSlot.getType() + " | Item in hand: " + itemInHand.getAmount() + "x "+ itemInHand.getType());
+		    	}
 		    	////
 		    	TransactionHolder th = activeTransactions.get(caller);
 		    	
 		    	// we only really need to monitor actions involving the top (chest) inventory
-		    	if(evt.getClickedInventory().equals(topInventory)) {
-		    		
-		    		if(action.equals("PLACE_ONE")) {
-		    			th.process(itemInSlot.getType().name(), 1);
-		    		}
-		    		else if(action.equals("PLACE_ALL") || action.equals("PLACE_SOME")) {
-			    		th.process(itemInSlot.getType().name(), itemInSlot.getAmount());
+		    	if(clickedInventory != null) {
+			    	if(clickedInventory.equals(topInventory)) {
+			    		
+			    		if(action.equals("PLACE_ONE")) {
+			    			th.process(itemInSlot.getType().name(), 1);
+			    		}
+			    		else if(action.equals("PLACE_ALL") || action.equals("PLACE_SOME")) {
+				    		th.process(itemInSlot.getType().name(), itemInSlot.getAmount());
+				    	}
+				    	else if(action.equals("MOVE_TO_OTHER_INVENTORY") || action.equals("PICKUP_ONE") || action.equals("PICKUP_ALL") || action.equals("PICKUP_SOME")
+				    			|| action.equals("DROP_ALL_SLOT") || action.equals("DROP_ALL_CURSOR") || action.equals("HOTBAR_MOVE_AND_READD") || action.equals("HOTBAR_SWAP")) {
+				    		th.process(itemInHand.getType().name(), -1*itemInHand.getAmount());
+				    	}
+				    	else if(action.equals("DROP_ONE_SLOT") || action.equals("DROP_ONE_CURSOR")) {
+				    		th.process(itemInHand.getType().name(), -1);
+				    	}
+				    	// TODO: add more conditionals for other actions
 			    	}
-			    	else if(action.equals("MOVE_TO_OTHER_INVENTORY") || action.equals("PICKUP_ONE") || action.equals("PICKUP_ALL") || action.equals("PICKUP_SOME")) {
-			    		th.process(itemInHand.getType().name(), -1*itemInHand.getAmount());
+			    	else if(clickedInventory.equals(bottomInventory)) {
+			    		if(action.equals("MOVE_TO_OTHER_INVENTORY")) {
+			    			th.process(itemInHand.getType().name(), itemInHand.getAmount());
+			    		}
 			    	}
-			    	// TODO: add more conditionals for other actions
-		    	}
-		    	else if(evt.getClickedInventory().equals(bottomInventory)) {
-		    		if(action.equals("MOVE_TO_OTHER_INVENTORY")) {
-		    			th.process(itemInHand.getType().name(), itemInHand.getAmount());
-		    		}
 		    	}
 	    	}
 	    	else {
