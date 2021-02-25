@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Chest;
 import org.bukkit.block.DoubleChest;
 import org.bukkit.block.ShulkerBox;
@@ -21,7 +22,9 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -46,6 +49,8 @@ import net.md_5.bungee.api.ChatColor;
 public class WatchBoxListener implements Listener{
 	
 	private WatchBox plugin;
+	
+	private HashMap<Player, TransactionHolder> activeTransactions = new HashMap<Player, TransactionHolder>();
 	
 	private final String PLUGIN_NAME = "WatchBox";
 	
@@ -72,23 +77,125 @@ public class WatchBoxListener implements Listener{
     }
     
     @EventHandler
+    public void onInventoryOpen(InventoryOpenEvent evt){
+    	Player caller = (Player) evt.getPlayer();
+    	
+        if (evt.getInventory().getHolder() instanceof Chest || evt.getInventory().getHolder() instanceof DoubleChest){
+            Chest chestBlock = (Chest) evt.getInventory().getHolder();
+            Sign watchSign = getAttachedWatchSign(chestBlock);
+	    	if(watchSign != null && caller.isOnline()) {
+	    		TransactionHolder th = new TransactionHolder(caller.getUniqueId(), chestBlock);
+	    		this.activeTransactions.put(caller, th);
+	    		// TODO: debug
+	    		caller.sendMessage("(Debug) New transaction holder created");
+	    		////
+	    	}
+        }
+    }
+    
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent evt) {
+    	Player caller = (Player) evt.getPlayer();
+    	
+        if (evt.getInventory().getHolder() instanceof Chest || evt.getInventory().getHolder() instanceof DoubleChest){
+            Chest chestBlock = (Chest) evt.getInventory().getHolder();
+            Sign watchSign = getAttachedWatchSign(chestBlock);
+	    	if(watchSign != null && caller.isOnline()) {
+	    		if(activeTransactions.containsKey(caller)) {
+	    			TransactionHolder th = activeTransactions.get(caller);
+	    			activeTransactions.remove(caller);
+	    			
+	    			for(String log : th.formattedList()) {
+	    				caller.sendMessage(ChatColor.AQUA + log);
+	    			}
+	    		}
+	    	}
+        }
+    }
+    @EventHandler
     public void onInventoryClick(InventoryClickEvent evt) {
     	Player caller = (Player) evt.getWhoClicked();
     	
     	Inventory topInventory = evt.getView().getTopInventory();
     	Inventory bottomInventory = evt.getView().getBottomInventory();
-    	ItemStack item = evt.getCurrentItem();
+    	ItemStack itemInSlot = evt.getCursor();
+    	ItemStack itemInHand = evt.getCurrentItem();
     	
-    	String action = evt.getAction().name();
-    	if((action.equals("PLACE_ONE") || action.equals("PLACE_ALL")) && evt.getClickedInventory().equals(topInventory)) {
-    		caller.sendMessage("(Debug) You placed " + item.getType() + " into chest");
-    	}
-    	else if(action.equals("MOVE_TO_OTHER_INVENTORY") && evt.getClickedInventory().equals(topInventory)) {
-    		caller.sendMessage("(Debug) You moved " + item.getType() + " into your inventory");
+    	if(topInventory.getHolder() instanceof Chest || topInventory.getHolder() instanceof DoubleChest) {
+    		// get the chest block, as we will need to get sign information from it
+	    	Chest openChestBlock = (Chest) topInventory.getHolder();
+	    	Sign watchSign = getAttachedWatchSign(openChestBlock);
+	    	if(watchSign != null) {
+		    	String action = evt.getAction().name();
+		    	// TODO: debug
+		    	caller.sendMessage("(Debug) Action is " + action);
+		    	caller.sendMessage("Item in slot: " + itemInSlot.getAmount() + "x " + itemInSlot.getType() + " | Item in hand: " + itemInHand.getAmount() + "x "+ itemInHand.getType());
+		    	////
+		    	TransactionHolder th = activeTransactions.get(caller);
+		    	
+		    	// we only really need to monitor actions involving the top (chest) inventory
+		    	if(evt.getClickedInventory().equals(topInventory)) {
+		    		
+		    		if(action.equals("PLACE_ONE")) {
+		    			th.process(itemInSlot.getType().name(), 1);
+		    		}
+		    		else if(action.equals("PLACE_ALL") || action.equals("PLACE_SOME")) {
+			    		th.process(itemInSlot.getType().name(), itemInSlot.getAmount());
+			    	}
+			    	else if(action.equals("MOVE_TO_OTHER_INVENTORY") || action.equals("PICKUP_ONE") || action.equals("PICKUP_ALL") || action.equals("PICKUP_SOME")) {
+			    		th.process(itemInHand.getType().name(), -1*itemInHand.getAmount());
+			    	}
+			    	// TODO: add more conditionals for other actions
+		    	}
+		    	else if(evt.getClickedInventory().equals(bottomInventory)) {
+		    		if(action.equals("MOVE_TO_OTHER_INVENTORY")) {
+		    			th.process(itemInHand.getType().name(), itemInHand.getAmount());
+		    		}
+		    	}
+	    	}
+	    	else {
+	    		// TODO: debug
+	    		caller.sendMessage("(Debug) This chest does not have a WatchBox sign on it");
+	    	}
     	}
     }
     
-    @EventHandler
+    /**
+     * Attempts to find any WatchBox signs attached to a chest block
+     * @param openChest - Chest object to inspect
+     * @return Sign containing WatchBox information, null on failure
+     */
+    private Sign getAttachedWatchSign(Chest openChest) {
+		ArrayList<Block> attached = new ArrayList<Block>();
+		
+		Block chestBlock = openChest.getBlock();
+		
+		if(blockIsSign(chestBlock.getRelative(BlockFace.WEST))) {
+			attached.add(chestBlock.getRelative(BlockFace.WEST));
+		}
+		else if(blockIsSign(chestBlock.getRelative(BlockFace.EAST))) {
+			attached.add(chestBlock.getRelative(BlockFace.EAST));
+		}
+		else if(blockIsSign(chestBlock.getRelative(BlockFace.SOUTH))) {
+			attached.add(chestBlock.getRelative(BlockFace.SOUTH));
+		}
+		else if(blockIsSign(chestBlock.getRelative(BlockFace.NORTH))) {
+			attached.add(chestBlock.getRelative(BlockFace.NORTH));
+		}
+		// TODO: are diagonal blocks counted for double chests?
+		
+		for(Block b : attached) {
+			Sign s = (Sign) b.getState();
+			
+			if(signIsWatchSign(s)) {
+				return s;
+			}
+		}
+		
+		return null;
+	}
+
+	@EventHandler
     public void onPlayerInteract(PlayerInteractEvent evt) {
         Player player = evt.getPlayer();
         
